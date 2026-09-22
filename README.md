@@ -1,8 +1,8 @@
-# 🛡️ SecurePay — UPI Fraud Alert System
+#  SecurePay — UPI Fraud Alert System
 
 A real-time UPI fraud risk detection and prevention system that analyzes transactions before payment completion and warns users about potentially suspicious transactions.
 
-## 💡 The Problem & Solution
+##  The Problem & Solution
 
 ### Problem
 
@@ -20,39 +20,39 @@ Before completing a potentially suspicious payment, SecurePay provides the user 
 
 > **Note:** This project is a sandboxed prototype and does not process real UPI transactions or real money.
 
-## ✨ Features
+##  Features
 
-- 🔍 **Pre-Payment Fraud Detection**  
+-  **Pre-Payment Fraud Detection**  
   Analyzes transactions before they are completed.
 
-- 📊 **Risk Score & Risk Level**  
+-  **Risk Score & Risk Level**  
   Generates an explainable risk score from 0–100 and classifies transactions as Low, Medium, High, or Critical risk.
 
-- 🧠 **Automatic Risk Analysis**  
+-  **Automatic Risk Analysis**  
   Internal signals such as new beneficiary status, receiver reputation, unusual transaction amount, transaction frequency, and suspicious patterns are calculated automatically.
 
-- ⚠️ **Explainable Fraud Alerts**  
+-  **Explainable Fraud Alerts**  
   Shows users why a transaction has been flagged instead of simply displaying a risk score.
 
-- 🛑 **Payment Prevention**  
+-  **Payment Prevention**  
   Users can cancel a suspicious transaction before completing the mock payment.
 
-- 💳 **Mock UPI Payment Flow**  
+-  **Mock UPI Payment Flow**  
   Demonstrates the complete payment → analysis → warning → decision workflow without processing real money.
 
-- 📜 **Transaction History**  
+-  **Transaction History**  
   Stores analyzed transactions along with their risk scores, risk levels, and final status.
 
-- 📈 **Fraud Monitoring Dashboard**  
+-  **Fraud Monitoring Dashboard**  
   Displays transaction statistics, risk distribution, and recent alerts.
 
-- ⚡ **Quick Demo Scenarios**  
+-  **Quick Demo Scenarios**  
   Includes safe, suspicious, and high-risk scenarios for quick demonstrations.
 
-- 💾 **Local Persistence**  
+-  **Local Persistence**  
   Prototype transaction data is stored using browser localStorage.
 
-## 🧠 How It Works
+##  How It Works
 
 ```text
 User enters payment details
