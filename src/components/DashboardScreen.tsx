@@ -1,258 +1,583 @@
-import { useState } from "react";
-import {
-  LayoutDashboard,
-  TrendingUp,
-  ShieldAlert,
-  ShieldX,
-  CheckCircle2,
-  ChevronDown,
-  ChevronUp,
-  Inbox,
-  IndianRupee,
-  Info,
-} from "lucide-react";
-import type { Transaction, RiskLevel } from "@/lib/types";
-import { riskColors, formatCurrency, formatTime } from "@/lib/ui";
+import React, { useMemo, useState } from "react";
+import "./DashboardScreen.css";
 
-interface DashboardScreenProps {
-  transactions: Transaction[];
-}
-
-const severityDot: Record<string, string> = {
-  critical: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-amber-500",
-  low: "bg-emerald-500",
+type Transaction = {
+  id?: string | number;
+  sender?: string;
+  receiver?: string;
+  amount?: number;
+  riskScore?: number;
+  riskLevel?: string;
+  status?: string;
+  time?: string;
 };
 
-export function DashboardScreen({ transactions }: DashboardScreenProps) {
-  const [selected, setSelected] = useState<string | null>(null);
+type Props = {
+  transactions?: Transaction[];
+};
 
-  const total = transactions.length;
-  const blocked = transactions.filter(
-    (t) => t.status === "BLOCKED" || t.status === "CANCELLED"
-  ).length;
-  const completed = transactions.filter(
-    (t) => t.status === "COMPLETED" || t.status === "USER_CONFIRMED"
-  ).length;
-  const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
+const demoTransactions: Transaction[] = [
+  {
+    id: 1,
+    sender: "Arun",
+    receiver: "priya@upi",
+    amount: 500,
+    riskScore: 12,
+    riskLevel: "LOW",
+    status: "Safe",
+    time: "10:30 AM",
+  },
+  {
+    id: 2,
+    sender: "Karthik",
+    receiver: "unknown@upi",
+    amount: 25000,
+    riskScore: 89,
+    riskLevel: "HIGH",
+    status: "Blocked",
+    time: "11:45 AM",
+  },
+  {
+    id: 3,
+    sender: "Divya",
+    receiver: "ravi@upi",
+    amount: 8000,
+    riskScore: 68,
+    riskLevel: "MEDIUM",
+    status: "Review",
+    time: "02:15 PM",
+  },
+  {
+    id: 4,
+    sender: "Rahul",
+    receiver: "shop@upi",
+    amount: 1200,
+    riskScore: 24,
+    riskLevel: "LOW",
+    status: "Safe",
+    time: "05:20 PM",
+  },
+];
 
-  const levels: RiskLevel[] = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
-  const distribution = levels.map((lvl) => ({
-    level: lvl,
-    count: transactions.filter((t) => t.risk.risk_level === lvl).length,
-  }));
-  const maxCount = Math.max(...distribution.map((d) => d.count), 1);
+function DashboardScreen({ transactions = [] }: Props) {
+  const [selected, setSelected] = useState<Transaction | null>(null);
 
-  const alerts = transactions.filter(
-    (t) => t.risk.risk_level === "HIGH" || t.risk.risk_level === "CRITICAL"
-  );
+  const list =
+    transactions.length > 0 ? transactions : demoTransactions;
+
+  const stats = useMemo(() => {
+    const totalAmount = list.reduce(
+      (sum, item) => sum + (item.amount || 0),
+      0
+    );
+
+    const highRisk = list.filter(
+      (item) => (item.riskScore || 0) >= 70
+    ).length;
+
+    const critical = list.filter(
+      (item) => (item.riskScore || 0) >= 90
+    ).length;
+
+    const average =
+      list.length > 0
+        ? Math.round(
+            list.reduce(
+              (sum, item) => sum + (item.riskScore || 0),
+              0
+            ) / list.length
+          )
+        : 0;
+
+    return {
+      totalAmount,
+      highRisk,
+      critical,
+      average,
+    };
+  }, [list]);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <div className="mb-5 flex items-center gap-2">
-        <LayoutDashboard className="h-5 w-5 text-slate-700" />
-        <h2 className="text-lg font-bold text-slate-900">Fraud Analyst Dashboard</h2>
-      </div>
+    <div className="dashboard">
 
-      {/* Demo disclaimer */}
-      <div className="mb-5 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
-        <p className="text-xs text-sky-800">
-          <span className="font-semibold">Demo Mode:</span> Transaction and reputation data shown in
-          this prototype are fictional and used only to demonstrate fraud-risk detection.
-        </p>
-      </div>
-
-      {/* Summary cards — row 1 */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SummaryCard
-          icon={<TrendingUp className="h-5 w-5" />}
-          label="Total Analyzed"
-          value={total}
-          color="bg-slate-100 text-slate-700"
-        />
-        <SummaryCard
-          icon={<IndianRupee className="h-5 w-5" />}
-          label="Total Amount Analyzed"
-          value={formatCurrency(totalAmount)}
-          color="bg-blue-100 text-blue-700"
-          isText
-        />
-        <SummaryCard
-          icon={<ShieldX className="h-5 w-5" />}
-          label="Cancelled / Blocked"
-          value={blocked}
-          color="bg-red-100 text-red-700"
-        />
-        <SummaryCard
-          icon={<CheckCircle2 className="h-5 w-5" />}
-          label="Completed"
-          value={completed}
-          color="bg-emerald-100 text-emerald-700"
-        />
-      </div>
-
-      {/* Summary cards — row 2 (risk levels) */}
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {distribution.map((d) => {
-          const c = riskColors[d.level];
-          return (
-            <SummaryCard
-              key={d.level}
-              icon={<ShieldAlert className="h-5 w-5" />}
-              label={`${d.level} Risk`}
-              value={d.count}
-              color={`${c.bg} ${c.text}`}
-            />
-          );
-        })}
-      </div>
-
-      {/* Risk distribution chart */}
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold text-slate-700">Risk Distribution</h3>
-        {total === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-400">
-            No data yet. Run a transaction to see the distribution.
-          </p>
-        ) : (
-          <div className="space-y-3">
-            {distribution.map((d) => {
-              const c = riskColors[d.level];
-              const pct = (d.count / maxCount) * 100;
-              return (
-                <div key={d.level} className="flex items-center gap-3">
-                  <span className="w-20 text-sm font-medium text-slate-600">{d.level}</span>
-                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className={`flex h-full items-center justify-end rounded-full px-2 ${c.bar} transition-all duration-500`}
-                      style={{ width: `${Math.max(pct, d.count > 0 ? 8 : 0)}%` }}
-                    >
-                      {d.count > 0 && (
-                        <span className="text-xs font-bold text-white">{d.count}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+      {/* HEADER */}
+      <header className="dashboard-header">
+        <div>
+          <div className="brand-row">
+            <div className="brand-icon">🛡️</div>
+            <div>
+              <h1>Fraud Intelligence Center</h1>
+              <p>
+                UPI transaction monitoring and fraud detection dashboard
+              </p>
+            </div>
           </div>
-        )}
-        <p className="mt-3 text-xs text-slate-400">
-          Prototype demonstration thresholds — not official banking thresholds.
-        </p>
-      </div>
-
-      {/* Recent risk alerts */}
-      <div className="mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <h3 className="text-sm font-semibold text-slate-700">Recent Risk Alerts</h3>
-          <p className="text-xs text-slate-400">High and critical risk transactions</p>
         </div>
 
-        {alerts.length === 0 ? (
-          <div className="py-16 text-center">
-            <Inbox className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-            <p className="text-sm text-slate-400">No alerts yet</p>
+        <div className="live-status">
+          <span className="status-dot"></span>
+          Monitoring Active
+        </div>
+      </header>
+
+      {/* STATS */}
+      <section className="stats-grid">
+
+        <StatCard
+          icon="💳"
+          title="Total Transactions"
+          value={list.length}
+        />
+
+        <StatCard
+          icon="💰"
+          title="Amount Analyzed"
+          value={`₹${stats.totalAmount.toLocaleString("en-IN")}`}
+        />
+
+        <StatCard
+          icon="⚠️"
+          title="High Risk"
+          value={stats.highRisk}
+        />
+
+        <StatCard
+          icon="🚨"
+          title="Critical Alerts"
+          value={stats.critical}
+        />
+
+        <StatCard
+          icon="📊"
+          title="Average Risk"
+          value={`${stats.average}/100`}
+        />
+
+      </section>
+
+      {/* ANALYTICS */}
+      <section className="analytics-grid">
+
+        {/* RISK DISTRIBUTION */}
+        <div className="panel">
+          <div className="panel-title">
+            <div>
+              <h2>Risk Distribution</h2>
+              <p>Transaction risk classification</p>
+            </div>
+            <span className="panel-icon">📈</span>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {alerts.map((txn) => {
-              const c = riskColors[txn.risk.risk_level];
-              const isOpen = selected === txn.id;
-              return (
-                <div key={txn.id}>
-                  <button
-                    onClick={() => setSelected(isOpen ? null : txn.id)}
-                    className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-slate-50"
-                  >
-                    <span className={`h-3 w-3 shrink-0 rounded-full ${c.dot}`} />
-                    <div className="hidden min-w-0 flex-1 sm:block">
-                      <span className="font-mono text-xs text-slate-400">{txn.id}</span>
-                      <span className="ml-2 text-sm text-slate-700">{txn.receiverUpi}</span>
-                    </div>
-                    <div className="flex-1 sm:hidden">
-                      <span className="font-mono text-xs text-slate-400">{txn.id}</span>
-                      <p className="truncate text-sm text-slate-700">{txn.receiverUpi}</p>
-                    </div>
-                    <span className="shrink-0 text-sm font-semibold text-slate-800">
-                      {formatCurrency(txn.amount)}
-                    </span>
-                    <span className={`shrink-0 text-xs font-bold ${c.text}`}>
-                      {txn.risk.risk_score}/100
-                    </span>
-                    <span
-                      className={`hidden shrink-0 rounded px-2 py-0.5 text-xs font-semibold sm:inline ${
-                        txn.status === "BLOCKED" || txn.status === "CANCELLED"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-slate-100 text-slate-700"
-                      }`}
-                    >
-                      {txn.status}
-                    </span>
-                    {isOpen ? (
-                      <ChevronUp className="h-4 w-4 shrink-0 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 shrink-0 text-slate-400" />
-                    )}
-                  </button>
-                  {isOpen && (
-                    <div className="bg-slate-50 px-5 py-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Risk Reasons
-                        </span>
-                        <span className="text-xs text-slate-400">{formatTime(txn.timestamp)}</span>
-                      </div>
-                      <ul className="space-y-1.5">
-                        {txn.risk.reasons.map((r, i) => (
-                          <li
-                            key={i}
-                            className="flex items-center justify-between rounded bg-white px-3 py-2 text-sm"
-                          >
-                            <span className="flex items-center gap-2 text-slate-700">
-                              <span className={`h-2 w-2 rounded-full ${severityDot[r.severity]}`} />
-                              {r.label}
-                            </span>
-                            <span className="text-xs font-semibold text-slate-400">
-                              +{r.weight}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+
+          <RiskBar
+            title="Low Risk"
+            count={
+              list.filter(
+                (item) => (item.riskScore || 0) < 40
+              ).length
+            }
+            total={list.length}
+            type="low"
+          />
+
+          <RiskBar
+            title="Medium Risk"
+            count={
+              list.filter(
+                (item) =>
+                  (item.riskScore || 0) >= 40 &&
+                  (item.riskScore || 0) < 70
+              ).length
+            }
+            total={list.length}
+            type="medium"
+          />
+
+          <RiskBar
+            title="High Risk"
+            count={
+              list.filter(
+                (item) =>
+                  (item.riskScore || 0) >= 70 &&
+                  (item.riskScore || 0) < 90
+              ).length
+            }
+            total={list.length}
+            type="high"
+          />
+
+          <RiskBar
+            title="Critical Risk"
+            count={
+              list.filter(
+                (item) => (item.riskScore || 0) >= 90
+              ).length
+            }
+            total={list.length}
+            type="critical"
+          />
+        </div>
+
+        {/* FRAUD INTELLIGENCE */}
+        <div className="panel">
+          <div className="panel-title">
+            <div>
+              <h2>Fraud Intelligence</h2>
+              <p>Detected suspicious patterns</p>
+            </div>
+            <span className="panel-icon">🔍</span>
           </div>
-        )}
-      </div>
+
+          <Pattern
+            icon="👤"
+            title="New Beneficiary"
+            text="New receiver detected"
+          />
+
+          <Pattern
+            icon="💸"
+            title="Amount Anomaly"
+            text="Unusual transaction amount"
+          />
+
+          <Pattern
+            icon="⏱️"
+            title="Unusual Time"
+            text="Transaction at unusual time"
+          />
+
+          <Pattern
+            icon="🔁"
+            title="Rapid Transactions"
+            text="Multiple payments detected"
+          />
+
+          <Pattern
+            icon="🎯"
+            title="Scam Pattern"
+            text="Suspicious behaviour detected"
+          />
+        </div>
+
+      </section>
+
+      {/* TRANSACTION TABLE */}
+      <section className="panel transaction-panel">
+
+        <div className="section-header">
+          <div>
+            <h2>Live Risk Alerts</h2>
+            <p>Recent UPI transaction activity</p>
+          </div>
+
+          <span className="alert-count">
+            {stats.highRisk} Alerts
+          </span>
+        </div>
+
+        <div className="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Sender</th>
+                <th>Receiver</th>
+                <th>Amount</th>
+                <th>Risk Score</th>
+                <th>Risk Level</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {list.map((transaction, index) => {
+                const score = transaction.riskScore || 0;
+
+                const level =
+                  transaction.riskLevel ||
+                  (score >= 90
+                    ? "CRITICAL"
+                    : score >= 70
+                    ? "HIGH"
+                    : score >= 40
+                    ? "MEDIUM"
+                    : "LOW");
+
+                return (
+                  <tr key={transaction.id || index}>
+
+                    <td className="sender-name">
+                      {transaction.sender || "Unknown"}
+                    </td>
+
+                    <td className="receiver-name">
+                      {transaction.receiver || "Unknown"}
+                    </td>
+
+                    <td>
+                      ₹
+                      {(transaction.amount || 0).toLocaleString(
+                        "en-IN"
+                      )}
+                    </td>
+
+                    <td>
+                      <strong className="score">
+                        {score}/100
+                      </strong>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`risk-badge ${level.toLowerCase()}`}
+                      >
+                        {level}
+                      </span>
+                    </td>
+
+                    <td>
+                      <span
+                        className={`status-text ${transaction.status?.toLowerCase()}`}
+                      >
+                        {transaction.status || "Pending"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button
+                        className="investigate-btn"
+                        onClick={() =>
+                          setSelected(transaction)
+                        }
+                      >
+                        Investigate
+                      </button>
+                    </td>
+
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* INVESTIGATION */}
+      {selected && (
+        <section className="panel investigation">
+
+          <div className="section-header">
+            <div>
+              <h2>Transaction Investigation</h2>
+              <p>Detailed fraud analysis</p>
+            </div>
+
+            <button
+              className="close-btn"
+              onClick={() => setSelected(null)}
+            >
+              Close
+            </button>
+          </div>
+
+          <div className="details-grid">
+
+            <Info
+              title="Sender"
+              value={selected.sender || "Unknown"}
+            />
+
+            <Info
+              title="Receiver"
+              value={selected.receiver || "Unknown"}
+            />
+
+            <Info
+              title="Amount"
+              value={`₹${(
+                selected.amount || 0
+              ).toLocaleString("en-IN")}`}
+            />
+
+            <Info
+              title="Risk Score"
+              value={`${selected.riskScore || 0}/100`}
+            />
+
+            <Info
+              title="Risk Level"
+              value={selected.riskLevel || "LOW"}
+            />
+
+            <Info
+              title="Transaction Time"
+              value={selected.time || "Not available"}
+            />
+
+          </div>
+
+          <div className="detection-summary">
+            <h3>🔍 Detection Summary</h3>
+
+            <p>
+              The transaction was analyzed using amount behaviour,
+              receiver information, transaction frequency and risk score.
+            </p>
+
+            <div className="detection-tags">
+              <span>Amount Analysis</span>
+              <span>Receiver Analysis</span>
+              <span>Behaviour Analysis</span>
+              <span>Risk Scoring</span>
+            </div>
+          </div>
+
+        </section>
+      )}
+
+      {/* SYSTEM STATUS */}
+      <section className="system-grid">
+
+        <SystemStatus
+          title="Fraud Detection Engine"
+          status="ONLINE"
+        />
+
+        <SystemStatus
+          title="Transaction Monitoring"
+          status="ACTIVE"
+        />
+
+        <SystemStatus
+          title="Risk Analysis"
+          status="RUNNING"
+        />
+
+      </section>
+
     </div>
   );
 }
 
-function SummaryCard({
+/* STAT CARD */
+
+function StatCard({
   icon,
-  label,
+  title,
   value,
-  color,
-  isText,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: number | string;
-  color: string;
-  isText?: boolean;
+  icon: string;
+  title: string;
+  value: string | number;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`mb-2 inline-flex h-9 w-9 items-center justify-center rounded-lg ${color}`}>
-        {icon}
-      </div>
-      <p className={`font-bold text-slate-900 ${isText ? "text-xl" : "text-2xl"}`}>{value}</p>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
+    <div className="stat-card">
+      <div className="stat-icon">{icon}</div>
+
+      <p>{title}</p>
+
+      <h2>{value}</h2>
     </div>
   );
 }
+
+/* RISK BAR */
+
+function RiskBar({
+  title,
+  count,
+  total,
+  type,
+}: {
+  title: string;
+  count: number;
+  total: number;
+  type: string;
+}) {
+  const percentage =
+    total > 0 ? (count / total) * 100 : 0;
+
+  return (
+    <div className="risk-row">
+
+      <div className="risk-title">
+        <span>{title}</span>
+        <strong>{count}</strong>
+      </div>
+
+      <div className="risk-track">
+        <div
+          className={`risk-fill ${type}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+
+    </div>
+  );
+}
+
+/* FRAUD PATTERN */
+
+function Pattern({
+  icon,
+  title,
+  text,
+}: {
+  icon: string;
+  title: string;
+  text: string;
+}) {
+  return (
+    <div className="pattern">
+
+      <div className="pattern-icon">
+        {icon}
+      </div>
+
+      <div>
+        <strong>{title}</strong>
+        <p>{text}</p>
+      </div>
+
+    </div>
+  );
+}
+
+/* INFO */
+
+function Info({
+  title,
+  value,
+}: {
+  title: string;
+  value: string;
+}) {
+  return (
+    <div className="info-box">
+      <p>{title}</p>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+/* SYSTEM STATUS */
+
+function SystemStatus({
+  title,
+  status,
+}: {
+  title: string;
+  status: string;
+}) {
+  return (
+    <div className="system-card">
+      <p>{title}</p>
+      <strong>
+        <span className="system-dot"></span>
+        {status}
+      </strong>
+    </div>
+  );
+}
+
+export { DashboardScreen };
+export default DashboardScreen;

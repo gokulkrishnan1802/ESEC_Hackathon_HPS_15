@@ -3,7 +3,7 @@ import { Navbar, type View } from "@/components/Navbar";
 import { PayScreen } from "@/components/PayScreen";
 import { AnalysisScreen } from "@/components/AnalysisScreen";
 import { HistoryScreen } from "@/components/HistoryScreen";
-import { DashboardScreen } from "@/components/DashboardScreen";
+import { DashboardScreen} from "./components/DashboardScreen";
 import type { PaymentInput, Transaction } from "@/lib/types";
 import { loadTransactions, clearTransactions } from "@/lib/storage";
 
