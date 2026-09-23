@@ -151,7 +151,7 @@ function DashboardScreen({ transactions = [] }: Props) {
             title="Critical Risk"
             count={
               list.filter(
-                (item) => item.risk.risk_score >= 861
+                (item) => item.risk.risk_score >= 81
               ).length
             }
             total={list.length}
