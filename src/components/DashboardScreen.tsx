@@ -135,10 +135,23 @@ function DashboardScreen({ transactions = [] }: Props) {
           />
 
           <RiskBar
+            title="High Risk"
+            count={
+              list.filter(
+                (item) =>
+                  item.risk.risk_score >= 61 &&
+                  item.risk.risk_score < 81
+              ).length
+            }
+            total={list.length}
+            type="high"
+          />
+
+          <RiskBar
             title="Critical Risk"
             count={
               list.filter(
-                (item) => item.risk.risk_score >= 61
+                (item) => item.risk.risk_score >= 861
               ).length
             }
             total={list.length}
