@@ -1,69 +1,16 @@
 import React, { useMemo, useState } from "react";
 import "./DashboardScreen.css";
-
-type Transaction = {
-  id?: string | number;
-  sender?: string;
-  receiver?: string;
-  amount?: number;
-  riskScore?: number;
-  riskLevel?: string;
-  status?: string;
-  time?: string;
-};
+import type { Transaction } from "@/lib/types";
 
 type Props = {
   transactions?: Transaction[];
 };
 
-const demoTransactions: Transaction[] = [
-  {
-    id: 1,
-    sender: "Arun",
-    receiver: "priya@upi",
-    amount: 500,
-    riskScore: 12,
-    riskLevel: "LOW",
-    status: "Safe",
-    time: "10:30 AM",
-  },
-  {
-    id: 2,
-    sender: "Karthik",
-    receiver: "unknown@upi",
-    amount: 25000,
-    riskScore: 89,
-    riskLevel: "HIGH",
-    status: "Blocked",
-    time: "11:45 AM",
-  },
-  {
-    id: 3,
-    sender: "Divya",
-    receiver: "ravi@upi",
-    amount: 8000,
-    riskScore: 68,
-    riskLevel: "MEDIUM",
-    status: "Review",
-    time: "02:15 PM",
-  },
-  {
-    id: 4,
-    sender: "Rahul",
-    receiver: "shop@upi",
-    amount: 1200,
-    riskScore: 24,
-    riskLevel: "LOW",
-    status: "Safe",
-    time: "05:20 PM",
-  },
-];
 
 function DashboardScreen({ transactions = [] }: Props) {
   const [selected, setSelected] = useState<Transaction | null>(null);
 
-  const list =
-    transactions.length > 0 ? transactions : demoTransactions;
+  const list = transactions;
 
   const stats = useMemo(() => {
     const totalAmount = list.reduce(
@@ -72,18 +19,18 @@ function DashboardScreen({ transactions = [] }: Props) {
     );
 
     const highRisk = list.filter(
-      (item) => (item.riskScore || 0) >= 70
+      (item) => item.risk.risk_level === "HIGH"
     ).length;
 
     const critical = list.filter(
-      (item) => (item.riskScore || 0) >= 90
+      (item) => item.risk.risk_level === "CRITICAL"
     ).length;
 
     const average =
       list.length > 0
         ? Math.round(
             list.reduce(
-              (sum, item) => sum + (item.riskScore || 0),
+              (sum, item) => sum + item.risk.risk_score,
               0
             ) / list.length
           )
@@ -172,7 +119,7 @@ function DashboardScreen({ transactions = [] }: Props) {
             title="Low Risk"
             count={
               list.filter(
-                (item) => (item.riskScore || 0) < 40
+                (item) => item.risk.risk_score < 31
               ).length
             }
             total={list.length}
@@ -184,8 +131,8 @@ function DashboardScreen({ transactions = [] }: Props) {
             count={
               list.filter(
                 (item) =>
-                  (item.riskScore || 0) >= 40 &&
-                  (item.riskScore || 0) < 70
+                  item.risk.risk_score >= 31 &&
+                  item.risk.risk_score < 61
               ).length
             }
             total={list.length}
@@ -197,8 +144,8 @@ function DashboardScreen({ transactions = [] }: Props) {
             count={
               list.filter(
                 (item) =>
-                  (item.riskScore || 0) >= 70 &&
-                  (item.riskScore || 0) < 90
+                  item.risk.risk_score >= 61 &&
+                  item.risk.risk_score < 81
               ).length
             }
             total={list.length}
@@ -209,7 +156,7 @@ function DashboardScreen({ transactions = [] }: Props) {
             title="Critical Risk"
             count={
               list.filter(
-                (item) => (item.riskScore || 0) >= 90
+                (item) => item.risk.risk_score >= 81
               ).length
             }
             total={list.length}
@@ -270,7 +217,7 @@ function DashboardScreen({ transactions = [] }: Props) {
           </div>
 
           <span className="alert-count">
-            {stats.highRisk} Alerts
+            {stats.highRisk + stats.critical} Alerts
           </span>
         </div>
 
@@ -290,34 +237,23 @@ function DashboardScreen({ transactions = [] }: Props) {
 
             <tbody>
               {list.map((transaction, index) => {
-                const score = transaction.riskScore || 0;
-
-                const level =
-                  transaction.riskLevel ||
-                  (score >= 90
-                    ? "CRITICAL"
-                    : score >= 70
-                    ? "HIGH"
-                    : score >= 40
-                    ? "MEDIUM"
-                    : "LOW");
+                const score = transaction.risk.risk_score;
+                const level = transaction.risk.risk_level;
 
                 return (
                   <tr key={transaction.id || index}>
 
                     <td className="sender-name">
-                      {transaction.sender || "Unknown"}
+                      {"You"}
                     </td>
 
                     <td className="receiver-name">
-                      {transaction.receiver || "Unknown"}
+                      {transaction.receiverUpi}
                     </td>
 
                     <td>
                       ₹
-                      {(transaction.amount || 0).toLocaleString(
-                        "en-IN"
-                      )}
+                      {transaction.amount.toLocaleString("en-IN")}
                     </td>
 
                     <td>
@@ -338,7 +274,7 @@ function DashboardScreen({ transactions = [] }: Props) {
                       <span
                         className={`status-text ${transaction.status?.toLowerCase()}`}
                       >
-                        {transaction.status || "Pending"}
+                        {transaction.status}
                       </span>
                     </td>
 
@@ -383,14 +319,13 @@ function DashboardScreen({ transactions = [] }: Props) {
 
             <Info
               title="Sender"
-              value={selected.sender || "Unknown"}
+              value="You"
             />
 
             <Info
               title="Receiver"
-              value={selected.receiver || "Unknown"}
+              value={selected.receiverUpi}
             />
-
             <Info
               title="Amount"
               value={`₹${(
@@ -400,17 +335,17 @@ function DashboardScreen({ transactions = [] }: Props) {
 
             <Info
               title="Risk Score"
-              value={`${selected.riskScore || 0}/100`}
+              value={`${selected.risk.risk_score}/100`}
             />
 
             <Info
               title="Risk Level"
-              value={selected.riskLevel || "LOW"}
+              value={selected.risk.risk_level}
             />
 
             <Info
               title="Transaction Time"
-              value={selected.time || "Not available"}
+              value={new Date(selected.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             />
 
           </div>
